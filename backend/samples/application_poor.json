@@ -1,0 +1,23 @@
+{
+  "borrower": {
+    "business_name": "Quick Transport Inc",
+    "industry": "Trucking",
+    "state": "CA",
+    "years_in_business": 1,
+    "annual_revenue": 250000,
+    "paynet_score": 580,
+    "guarantors": [
+      {
+        "name": "Mike Johnson",
+        "fico_score": 580,
+        "has_bankruptcy": 1,
+        "has_open_tax_liens": 0
+      }
+    ]
+  },
+  "amount": 75000,
+  "term_months": 48,
+  "equipment_type": "Trucking",
+  "equipment_age_years": 5,
+  "equipment_description": "Freightliner Semi Truck"
+}

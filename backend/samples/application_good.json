@@ -1,0 +1,23 @@
+{
+  "borrower": {
+    "business_name": "ABC Construction LLC",
+    "industry": "Construction",
+    "state": "TX",
+    "years_in_business": 5,
+    "annual_revenue": 1500000,
+    "paynet_score": 720,
+    "guarantors": [
+      {
+        "name": "John Smith",
+        "fico_score": 720,
+        "has_bankruptcy": 0,
+        "has_open_tax_liens": 0
+      }
+    ]
+  },
+  "amount": 150000,
+  "term_months": 60,
+  "equipment_type": "Construction",
+  "equipment_age_years": 2,
+  "equipment_description": "Caterpillar Excavator 320"
+}
