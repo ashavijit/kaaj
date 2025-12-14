@@ -3,14 +3,14 @@
 ## Lender Requirements Prioritized
 
 ### 1. Core Credit Criteria (Highest Priority)
-- **FICO Score** - Personal credit score is the primary eligibility filter for all lenders
-- **PayNet Score** - Business credit score used by commercial lenders
+- **FICO Score** - A personal credit score is the main factor for eligibility in all lenders
+- **PayNet Score** - A business credit score that is used by commercial lenders
 - **Years in Business** - Time in business requirement (TIB)
 - **Loan Amount Range** - Min/max loan amounts per lender
 
 ### 2. Business & Collateral Criteria
-- **Equipment Type** - Different lenders specialize in different equipment categories
-- **Equipment Age** - Max age restrictions (e.g., "equipment must be ≤10 years old")
+- **Equipment Type** - Different lenders may focus on different equipment categories
+- **Equipment Age** - Maximum age restrictions (e.g., "equipment must be ≤10 years old")
 - **Annual Revenue** - Minimum revenue requirements for corp-only programs
 - **Geographic Restrictions** - State exclusions (e.g., Apex doesn't lend in CA, NV, ND, VT)
 
@@ -22,20 +22,20 @@
 ## Simplifications Made
 
 ### 1. Single Primary Guarantor
-- **Decision**: Use the first guarantor's FICO score for matching
-- **Reason**: Simplifies matching logic; real systems would evaluate all guarantors
+- **Decision**: For matching purposes, use the primary guarantor's FICO score
+- **Reason**: Simplifies matching logic; in reality, systems would consider all guarantors
 
 ### 2. Multi-Tier Programs → Separate Policies
-- **Decision**: Each program tier (A/B/C Rate, Tier 1/2/3) becomes a separate `LenderPolicy`
-- **Reason**: Allows granular matching and shows best-fit program per lender
+- **Decision**: Each program tier (A/B/C Rate, Tier 1/2/3) is converted to a separate `LenderPolicy`
+- **Reason**: Enables detailed matching and best-fit program display per lender
 
 ### 3. PDF Parsing with Regex
-- **Decision**: Use pattern matching instead of LLM-based extraction
-- **Reason**: Deterministic, fast, and works offline; patterns cover 90% of cases
+- **Decision**: Switch to pattern matching instead of LLM-based extraction
+- **Reason**: It is deterministic, fast, and also works offline; patterns can handle 90% of cases
 
 ### 4. Scoring Formula
-- **Decision**: Fit score = (criteria_met / total_criteria) × 100
-- **Reason**: Simple, intuitive, comparable across lenders
+- **Decision**: Fit score = (criteria met/total criteria) × 100
+- **Reason**: It is a straightforward, understandable, and easily comparable score across different lenders
 
 ### 5. No Hatchet Workflow Integration
 - **Decision**: Synchronous matching in FastAPI endpoint
@@ -46,56 +46,55 @@
 ### Backend Structure
 ```
 backend/
-├── models/          # SQLAlchemy ORM (single source of truth)
-├── schemas/         # Pydantic validation (API contracts)
-├── routers/         # FastAPI endpoints (thin layer)
-├── services/        # Business logic (matching, rules, parsing)
-└── utils/           # ID generation, helpers
+├── models/ # SQLAlchemy ORM (single source of truth)
+├── schemas/ # Pydantic validation (API contracts)
+├── routers/ # FastAPI endpoints (thin layer)
+├── services/ # Business logic (matching, rules, parsing)
+└── utils/ # ID generation, helpers
 ```
 
 ### Rule Engine Design
-- **Extensible**: Add new rules by decorating functions with `@register_rule("name")`
-- **Decoupled**: Rules don't know about each other; matching engine runs all rules
-- **Transparent**: Each rule returns (passed, criteria_name, value, required) for UI display
+- **Extensible**: New rules can be added just by decorating the functions with `@register_rule("name")`
+- **Decoupled**: Rules are independent of each other; the matching engine runs all rules
+- **Transparent**: A rule returns (passed, criteria_name, value, required) that can be displayed in the UI
 
 ### PDF Parser Design
-- **Class-based**: `PDFParser` extracts specific fields via methods
-- **Fallback patterns**: Multiple regex patterns per field for robustness
-- **Multi-tier aware**: Extracts Tier 1/2/3 and A/B/C rate data separately
+- **Class-based**: `PDFParser` is a class that has methods for extracting specific fields
+- **Fallback patterns**: There are multiple regex patterns for each field to be more robust
+- **Multi-tier aware**: Separate extraction for Tier 1/2/3 and A/B/C rate
 
 ## What I Would Add With More Time
 
 ### 1. Hatchet Workflow Integration
-- Parallel lender evaluation with retry logic
-- Async status polling for large batch processing
-- Rate limiting for external credit bureau calls
+- Lender evaluation parallel with retry logic
+- Status polling async for large batch processing
+- Credit bureau call rate limiting
 
 ### 2. Enhanced Matching Logic
-- Weighted scoring (FICO failures more impactful than term mismatches)
-- "Near-miss" detection (e.g., "FICO 695, needs 700 - consider with conditions")
-- Program recommendation ("You qualify for B Rate, A Rate requires 30 more FICO points")
+- Scoring that is weighted (FICO failures are more impactful than term mismatches)
+- Close-miss detection (e.g., "FICO 695, needs 700 - consider with conditions")
+- Program suggestion ("You are eligible for B Rate, A Rate requires 30 more FICO points")
 
 ### 3. PDF Parsing Improvements
-- LLM-assisted extraction for complex tables
-- Confidence scores per extracted field
-- Human review queue for low-confidence extractions
+- Table extraction with LLM-assisted methods
+- Confidence score for each extracted field
+- Low confidence extractions go to a human review queue
 
 ### 4. Additional UI Features
-- Side-by-side lender comparison
-- Export to PDF/Excel
-- Application history and version tracking
+- Lender comparison side by side
+- PDF/Excel export - History and version tracking of applications
 - Bulk application upload (CSV)
 
 ### 5. Testing
 - Unit tests for all rules
 - Integration tests for PDF parser
-- E2E tests with Playwright
+- E2E tests using Playwright
 - Load testing for underwriting endpoint
 
 ### 6. Production Readiness
-- Structured logging with correlation IDs
-- Prometheus metrics for monitoring
+- Correlation IDs in structured logging
+- Monitoring through Prometheus metrics
 - Rate limiting on public endpoints
-- Database migrations with Alembic
+- Alembic database migrations
 - Docker Compose for local development
-- CI/CD pipeline with GitHub Actions
+- GitHub Actions CI/CD pipeline

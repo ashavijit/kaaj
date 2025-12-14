@@ -5,7 +5,6 @@ from pathlib import Path
 
 
 class PDFParser:
-    """Enhanced PDF parser for lender guidelines with multi-tier and PayNet support."""
     
     def __init__(self, pdf_path: str):
         self.pdf_path = pdf_path
@@ -32,10 +31,8 @@ class PDFParser:
         return name_map.get(filename, filename)
     
     def extract_fico_scores(self) -> Dict[str, Optional[int]]:
-        """Extract FICO score requirements, potentially with multiple tiers."""
         result = {"min": None, "tiers": {}}
         
-        # Pattern for tiered FICO (e.g., "Tier 1 FICO 725")
         tier_patterns = [
             r'Tier\s*(\d)\s*\n?\s*FICO\s*\n?\s*(\d{3})',
             r'FICO.*?Tier\s*(\d).*?(\d{3})',
@@ -47,7 +44,6 @@ class PDFParser:
                 tier_num, score = match
                 result["tiers"][f"Tier {tier_num}"] = int(score)
         
-        # Pattern for rate-based FICO (A Rate: 700+ FICO)
         rate_patterns = [
             r'([ABC])\s*Rate\s*Guidelines.*?(\d{3})\+?\s*FICO',
             r'([ABC])\s*Credit.*?(\d{3})\+?\s*FICO',
@@ -59,7 +55,6 @@ class PDFParser:
                 tier_name, score = match
                 result["tiers"][f"{tier_name} Rate"] = int(score)
         
-        # Simple minimum FICO patterns
         simple_patterns = [
             r'minimum\s*FICO\s*(?:score|requirement)?[:\s]*(\d{3})',
             r'FICO\s*(?:score)?[:\s]*(\d{3})\+',
@@ -71,22 +66,19 @@ class PDFParser:
             match = re.search(pattern, self.text, re.IGNORECASE)
             if match:
                 score = int(match.group(1))
-                if 500 <= score <= 850:  # Valid FICO range
+                if 500 <= score <= 850:
                     if result["min"] is None or score < result["min"]:
                         result["min"] = score
                     break
         
-        # Get minimum from tiers if no simple min found
         if result["min"] is None and result["tiers"]:
             result["min"] = min(result["tiers"].values())
         
         return result
     
     def extract_paynet_scores(self) -> Dict[str, Optional[int]]:
-        """Extract PayNet score requirements."""
         result = {"min": None, "tiers": {}}
         
-        # Tiered PayNet patterns
         tier_patterns = [
             r'Tier\s*(\d)\s*\n?\s*Paynet\s*\n?\s*(\d{3})',
             r'Paynet.*?Tier\s*(\d).*?(\d{3})',
@@ -98,7 +90,6 @@ class PDFParser:
                 tier_num, score = match
                 result["tiers"][f"Tier {tier_num}"] = int(score)
         
-        # Rate-based PayNet
         rate_patterns = [
             r'([ABC])\s*Rate\s*Guidelines.*?(\d{3})\+?\s*PayNet',
             r'([ABC])\s*Credit.*?(\d{3})\+?\s*PayNet',
@@ -110,7 +101,6 @@ class PDFParser:
                 tier_name, score = match
                 result["tiers"][f"{tier_name} Rate"] = int(score)
         
-        # Simple minimum PayNet
         simple_patterns = [
             r'minimum\s*PayNet\s*(?:requirement)?[:\s]*(\d{3})',
             r'PayNet\s*(?:Masterscore)?[:\s]*(\d{3})\+?',
@@ -121,7 +111,7 @@ class PDFParser:
             match = re.search(pattern, self.text, re.IGNORECASE)
             if match:
                 score = int(match.group(1))
-                if 500 <= score <= 850:  # Valid PayNet range
+                if 500 <= score <= 850:
                     if result["min"] is None or score < result["min"]:
                         result["min"] = score
                     break
@@ -132,7 +122,6 @@ class PDFParser:
         return result
     
     def extract_loan_amounts(self) -> Dict[str, Optional[float]]:
-        """Extract loan amount ranges."""
         result = {"min": None, "max": None}
         
         def parse_amount(val: str) -> float:
@@ -144,7 +133,6 @@ class PDFParser:
                 return float(val) * 1000000
             return float(val)
         
-        # Range patterns
         range_patterns = [
             r'\$(\d{1,3}(?:,\d{3})*(?:K)?)\s*[-–to]+\s*\$(\d{1,3}(?:,\d{3})*(?:K|M|MM)?)',
             r'Net\s*Financed\s*\$(\d{1,3}(?:,\d{3})*)\s*to\s*\$(\d{1,3}(?:,\d{3})*)',
@@ -161,7 +149,6 @@ class PDFParser:
                 except:
                     pass
         
-        # Single amount patterns
         single_patterns = [
             (r'minimum.*?\$(\d{1,3}(?:,\d{3})*(?:K)?)', 'min'),
             (r'maximum.*?\$(\d{1,3}(?:,\d{3})*(?:K|M)?)', 'max'),
@@ -182,7 +169,6 @@ class PDFParser:
                 except:
                     pass
         
-        # Get min/max from ranges
         if amounts_found:
             all_mins = [a[0] for a in amounts_found]
             all_maxs = [a[1] for a in amounts_found]
@@ -194,10 +180,8 @@ class PDFParser:
         return result
     
     def extract_years_in_business(self) -> Dict[str, Any]:
-        """Extract time in business requirements."""
         result = {"min": None, "tiers": {}}
         
-        # Tiered TIB patterns
         tier_patterns = [
             r'Tier\s*(\d)\s*\n?\s*TIB\s*\n?\s*(\d+)',
         ]
@@ -208,7 +192,6 @@ class PDFParser:
                 tier_num, years = match
                 result["tiers"][f"Tier {tier_num}"] = int(years)
         
-        # Rate-based TIB
         rate_patterns = [
             r'([ABC])\s*Rate\s*Guidelines.*?(\d+)\s*years?\s*(?:time\s*)?in\s*business',
         ]
@@ -219,7 +202,6 @@ class PDFParser:
                 tier_name, years = match
                 result["tiers"][f"{tier_name} Rate"] = int(years)
         
-        # Simple TIB patterns - be careful not to match FICO scores
         simple_patterns = [
             r'(\d+)\+?\s*years?\s*(?:time\s*)?in\s*business',
             r'time\s*in\s*business[:\s]*(\d+)',
@@ -232,13 +214,11 @@ class PDFParser:
             match = re.search(pattern, self.text, re.IGNORECASE)
             if match:
                 years = int(match.group(1))
-                # Filter out values that look like scores (>= 100)
                 if years < 100:
                     if result["min"] is None or years < result["min"]:
                         result["min"] = years
                     break
         
-        # Get minimum from tiers if no simple min found
         if result["min"] is None and result["tiers"]:
             tiers_clean = {k: v for k, v in result["tiers"].items() if v < 100}
             if tiers_clean:
@@ -247,10 +227,8 @@ class PDFParser:
         return result
     
     def extract_excluded_industries(self) -> List[str]:
-        """Extract excluded/restricted industries."""
         excluded = set()
         
-        # Common exclusions to look for
         industry_patterns = {
             "gambling": ["gambling", "gaming", "casino"],
             "cannabis": ["cannabis", "marijuana", "cbd"],
@@ -258,7 +236,7 @@ class PDFParser:
             "firearms": ["firearms", "weapons", "guns"],
             "tobacco": ["tobacco"],
             "oil & gas": ["oil & gas", "petroleum", "oil/gas"],
-            "trucking": ["trucking"],  # Some lenders exclude this
+            "trucking": ["trucking"],
             "restaurants": ["restaurants"],
             "real estate": ["real estate"],
             "money services": ["msb", "money service"],
@@ -274,7 +252,6 @@ class PDFParser:
             "pawn shops": ["pawn"],
         }
         
-        # Look for restriction sections
         restriction_section = ""
         restriction_patterns = [
             r'(?:excluded|restricted|not\s*(?:accepted|allowed|desired))[:\s]*(.*?)(?:\n\n|\Z)',
@@ -288,17 +265,15 @@ class PDFParser:
             if match:
                 restriction_section += " " + match.group(1)
         
-        # Check both full text and restriction section
         text_to_check = (self.text_lower + " " + restriction_section.lower())
         
         for industry, keywords in industry_patterns.items():
             for keyword in keywords:
                 if keyword in text_to_check:
-                    # Verify it's in a negative context
                     context_patterns = [
                         rf'(?:not|no|excluded?|restrict|prohibit|avoid).*?{keyword}',
                         rf'{keyword}.*?(?:not|excluded?|restrict|prohibit)',
-                        rf'•\s*{keyword}',  # Bullet point in exclusion list
+                        rf'•\s*{keyword}',
                     ]
                     for ctx_pattern in context_patterns:
                         if re.search(ctx_pattern, text_to_check):
@@ -308,10 +283,8 @@ class PDFParser:
         return list(excluded)
     
     def extract_excluded_states(self) -> List[str]:
-        """Extract excluded states/geographic restrictions."""
         excluded = set()
         
-        # Pattern for explicit state exclusions
         patterns = [
             r'(?:does\s*not|do\s*not|doesn\'t)\s*lend\s*in[:\s]*(.*?)(?:\n|$)',
             r'excluded?\s*states?[:\s]*(.*?)(?:\n|$)',
@@ -335,7 +308,6 @@ class PDFParser:
                     if re.search(rf'\b{state}\b', section):
                         excluded.add(state)
         
-        # Also check for inline mentions
         text_upper = self.text.upper()
         inline_pattern = r'(?:not|no|excluded?|avoid|does\s*not\s*lend).*?([A-Z]{2}(?:\s*,\s*[A-Z]{2})*)'
         match = re.search(inline_pattern, text_upper)
@@ -348,7 +320,6 @@ class PDFParser:
         return list(excluded)
     
     def extract_equipment_types(self) -> Dict[str, List[str]]:
-        """Extract allowed equipment types."""
         result = {"allowed": [], "excluded": []}
         
         equipment_categories = [
@@ -364,10 +335,9 @@ class PDFParser:
         
         for category in equipment_categories:
             if category in self.text_lower:
-                # Check if it's in an exclusion context
                 exclusion_patterns = [
                     rf'(?:not|no|excluded?|avoid).*?{category}',
-                    rf'•\s*{category}',  # In exclusion list
+                    rf'•\s*{category}',
                 ]
                 is_excluded = False
                 for pattern in exclusion_patterns:
@@ -383,10 +353,8 @@ class PDFParser:
         return result
     
     def extract_rates(self) -> Dict[str, Any]:
-        """Extract interest rate information."""
         result = {"rates": [], "rate_adjustments": []}
         
-        # Rate patterns (e.g., "A Rate 9.00%")
         rate_patterns = [
             r'([A-E])\s*(?:Rate|Credit)?\s*\n?.*?(\d+\.\d+)%',
             r'(\d+\.\d+)%\s*[-–]\s*([A-E])\s*(?:Rate|Credit)',
@@ -399,7 +367,6 @@ class PDFParser:
                     tier, rate = match if match[0].isalpha() else (match[1], match[0])
                     result["rates"].append({"tier": tier.upper(), "rate": float(rate)})
         
-        # Rate adjustments
         adjustment_patterns = [
             r'([\+\-]\s*\d+\.\d+%)\s*(?:for\s*)?(.*?)(?:\n|$)',
         ]
@@ -416,7 +383,6 @@ class PDFParser:
         return result
     
     def extract_term_limits(self) -> Dict[str, Optional[int]]:
-        """Extract loan term limits in months."""
         result = {"min_months": None, "max_months": None}
         
         patterns = [
@@ -436,7 +402,6 @@ class PDFParser:
                     terms_found.append(int(match))
         
         if terms_found:
-            # Filter out unreasonable values
             terms_found = [t for t in terms_found if 6 <= t <= 120]
             if terms_found:
                 result["min_months"] = min(terms_found)
@@ -445,7 +410,6 @@ class PDFParser:
         return result
     
     def extract_equipment_age(self) -> Optional[int]:
-        """Extract maximum equipment age restriction."""
         patterns = [
             r'equipment\s*over\s*(\d+)\s*years?\s*old',
             r'(\d+)\s*years?\s*(?:and\s*)?(?:newer|old|maximum\s*age)',
@@ -456,13 +420,12 @@ class PDFParser:
             match = re.search(pattern, self.text, re.IGNORECASE)
             if match:
                 age = int(match.group(1))
-                if age <= 30:  # Reasonable equipment age
+                if age <= 30:
                     return age
         
         return None
     
     def extract_revenue_requirements(self) -> Optional[float]:
-        """Extract minimum revenue requirements."""
         patterns = [
             r'annual\s*sales?\s*(?:must\s*be\s*)?(?:at\s*least\s*)?\$(\d+(?:,\d{3})*(?:M|MM|K)?)',
             r'minimum\s*(?:annual\s*)?revenue[:\s]*\$(\d+(?:,\d{3})*(?:M|MM|K)?)',
@@ -489,14 +452,12 @@ class PDFParser:
         return None
     
     def extract_programs(self) -> List[Dict[str, Any]]:
-        """Extract multiple programs/tiers from the PDF."""
         programs = []
         
         fico_data = self.extract_fico_scores()
         paynet_data = self.extract_paynet_scores()
         tib_data = self.extract_years_in_business()
         
-        # If we have tiered data, create multiple programs
         if fico_data["tiers"] or paynet_data["tiers"]:
             all_tiers = set(fico_data["tiers"].keys()) | set(paynet_data["tiers"].keys()) | set(tib_data.get("tiers", {}).keys())
             
@@ -509,7 +470,6 @@ class PDFParser:
                 }
                 programs.append(program)
         
-        # Always add a "Standard" program with minimums
         if not programs or fico_data["min"] or paynet_data["min"]:
             programs.insert(0, {
                 "name": "Standard Program",
@@ -521,7 +481,6 @@ class PDFParser:
         return programs
     
     def extract_policy_data(self) -> Dict[str, Any]:
-        """Extract all policy data from the PDF."""
         fico_data = self.extract_fico_scores()
         paynet_data = self.extract_paynet_scores()
         loan_amounts = self.extract_loan_amounts()
@@ -533,7 +492,6 @@ class PDFParser:
         return {
             "lender_name": self.extract_lender_name(),
             "programs": self.extract_programs(),
-            # Primary policy (most lenient requirements)
             "fico_min": fico_data["min"],
             "fico_tiers": fico_data["tiers"],
             "paynet_min": paynet_data["min"],
@@ -556,13 +514,11 @@ class PDFParser:
 
 
 def parse_pdf(pdf_path: str) -> Dict[str, Any]:
-    """Parse a single PDF and return extracted data."""
     parser = PDFParser(pdf_path)
     return parser.extract_policy_data()
 
 
 def parse_all_pdfs(directory: str) -> List[Dict[str, Any]]:
-    """Parse all PDFs in a directory."""
     results = []
     path = Path(directory)
     for pdf_file in path.glob("*.pdf"):

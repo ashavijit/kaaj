@@ -161,3 +161,47 @@ export async function getEligibleMatches(applicationId: string): Promise<MatchRe
 export async function healthCheck(): Promise<{ status: string }> {
     return fetchApi<{ status: string }>('/health');
 }
+
+export interface PdfImportResult {
+    message: string;
+    lender: string;
+    policies_created: string[];
+    extracted: Record<string, unknown>;
+}
+
+export interface DirectoryImportResult {
+    imported: Array<{
+        lender: string;
+        status: string;
+        policies: string[];
+    }>;
+    total: number;
+}
+
+export async function uploadPdf(file: File): Promise<PdfImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/import/pdf`;
+    const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new ApiError(response.status, error || response.statusText);
+    }
+
+    return response.json();
+}
+
+export async function importFromDirectory(directory: string): Promise<DirectoryImportResult> {
+    return fetchApi<DirectoryImportResult>(`/import/directory?directory=${encodeURIComponent(directory)}`, {
+        method: 'POST',
+    });
+}
+
+export async function previewPdf(pdfPath: string): Promise<Record<string, unknown>> {
+    return fetchApi<Record<string, unknown>>(`/import/preview?pdf_path=${encodeURIComponent(pdfPath)}`);
+}
