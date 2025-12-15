@@ -53,6 +53,15 @@ Main endpoints:
 
 Full API docs at `/docs` when running.
 
+## Testing
+
+```bash
+cd backend
+pytest tests/ -v
+```
+
+Covers matching rules: FICO, loan amounts, state restrictions, industry exclusions, bankruptcy/tax liens.
+
 ## Project structure
 
 ```
