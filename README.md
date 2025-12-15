@@ -60,7 +60,31 @@ cd backend
 pytest tests/ -v
 ```
 
-Covers matching rules: FICO, loan amounts, state restrictions, industry exclusions, bankruptcy/tax liens.
+```
+tests/test_matching.py::TestFicoRule::test_fico_pass PASSED
+tests/test_matching.py::TestFicoRule::test_fico_fail PASSED
+tests/test_matching.py::TestFicoRule::test_fico_no_requirement PASSED
+tests/test_matching.py::TestLoanAmountRules::test_min_amount_pass PASSED
+tests/test_matching.py::TestLoanAmountRules::test_min_amount_fail PASSED
+tests/test_matching.py::TestLoanAmountRules::test_max_amount_pass PASSED
+tests/test_matching.py::TestLoanAmountRules::test_max_amount_fail PASSED
+tests/test_matching.py::TestStateRules::test_state_allowed PASSED
+tests/test_matching.py::TestStateRules::test_state_not_allowed PASSED
+tests/test_matching.py::TestStateRules::test_state_excluded PASSED
+tests/test_matching.py::TestStateRules::test_state_not_excluded PASSED
+tests/test_matching.py::TestIndustryRule::test_industry_allowed PASSED
+tests/test_matching.py::TestIndustryRule::test_industry_excluded PASSED
+tests/test_matching.py::TestIndustryRule::test_industry_case_insensitive PASSED
+tests/test_matching.py::TestRiskFlags::test_no_bankruptcy_pass PASSED
+tests/test_matching.py::TestRiskFlags::test_bankruptcy_fail PASSED
+tests/test_matching.py::TestRiskFlags::test_no_tax_liens_pass PASSED
+tests/test_matching.py::TestRiskFlags::test_tax_liens_fail PASSED
+tests/test_matching.py::TestRunAllRules::test_all_pass_eligible PASSED
+tests/test_matching.py::TestRunAllRules::test_partial_fail PASSED
+tests/test_matching.py::TestRunAllRules::test_score_calculation PASSED
+
+21 passed
+```
 
 ## Project structure
 

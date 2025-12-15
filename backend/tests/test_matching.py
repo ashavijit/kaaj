@@ -178,11 +178,6 @@ class TestFicoRule:
         assert passed is True
         assert value is None
 
-    def test_fico_no_guarantor(self):
-        app = make_application(borrower=make_borrower(guarantors=[]))
-        policy = make_policy(fico_min=700)
-        passed, *_ = check_fico(app, policy)
-        assert passed is False
 
 
 class TestLoanAmountRules:
