@@ -1,100 +1,102 @@
 # Design Decisions
 
-## Lender Requirements Prioritized
+## What matters most to lenders
 
-### 1. Core Credit Criteria (Highest Priority)
-- **FICO Score** - A personal credit score is the main factor for eligibility in all lenders
-- **PayNet Score** - A business credit score that is used by commercial lenders
-- **Years in Business** - Time in business requirement (TIB)
-- **Loan Amount Range** - Min/max loan amounts per lender
+### Credit stuff (the dealbreakers)
+- **FICO Score** - basically the gatekeeper for every lender
+- **PayNet Score** - business credit, some commercial lenders care about this
+- **Time in Business** - "how long have you been around?"
+- **Loan Amount** - each lender has their min/max sweet spot
 
-### 2. Business & Collateral Criteria
-- **Equipment Type** - Different lenders may focus on different equipment categories
-- **Equipment Age** - Maximum age restrictions (e.g., "equipment must be ≤10 years old")
-- **Annual Revenue** - Minimum revenue requirements for corp-only programs
-- **Geographic Restrictions** - State exclusions (e.g., Apex doesn't lend in CA, NV, ND, VT)
+### Business & collateral
+- **Equipment Type** - some lenders specialize, others don't care
+- **Equipment Age** - usually something like "no older than 10 years"
+- **Annual Revenue** - for corp-only programs
+- **Geography** - Apex won't touch CA, NV, ND, VT for example
 
-### 3. Risk Flags
-- **Bankruptcy History** - Most lenders require no recent bankruptcy
-- **Tax Liens** - Open tax liens disqualify from most programs
-- **Industry Exclusions** - High-risk industries excluded (gambling, cannabis, etc.)
+### Red flags
+- **Recent bankruptcy** - pretty much an instant no
+- **Open tax liens** - same deal
+- **Certain industries** - gambling, cannabis, etc
 
-## Simplifications Made
+---
 
-### 1. Single Primary Guarantor
-- **Decision**: For matching purposes, use the primary guarantor's FICO score
-- **Reason**: Simplifies matching logic; in reality, systems would consider all guarantors
+## Shortcuts I took
 
-### 2. Multi-Tier Programs → Separate Policies
-- **Decision**: Each program tier (A/B/C Rate, Tier 1/2/3) is converted to a separate `LenderPolicy`
-- **Reason**: Enables detailed matching and best-fit program display per lender
+### One guarantor only
+Using the primary guarantor's FICO for matching. In a real system you'd look at all of them, but this keeps things simple.
 
-### 3. PDF Parsing with Regex
-- **Decision**: Switch to pattern matching instead of LLM-based extraction
-- **Reason**: It is deterministic, fast, and also works offline; patterns can handle 90% of cases
+### Tiers = separate policies
+Each tier (A/B/C rate, Tier 1/2/3) becomes its own `LenderPolicy`. More policies to match against, but way easier to show "here's the best program for you."
 
-### 4. Scoring Formula
-- **Decision**: Fit score = (criteria met/total criteria) × 100
-- **Reason**: It is a straightforward, understandable, and easily comparable score across different lenders
+### Regex over LLMs for PDFs
+Went with pattern matching instead of throwing GPT at it. Deterministic, fast, works offline. Handles most cases fine.
 
-### 5. No Hatchet Workflow Integration
-- **Decision**: Synchronous matching in FastAPI endpoint
-- **Reason**: 5 lenders × ~15 policies runs in <100ms; parallelization overhead not justified
+### Dead simple scoring
+`fit score = (criteria passed / total criteria) × 100`
+Nothing fancy. Easy to understand, easy to compare.
 
-## Architecture Decisions
+### No async workflows
+Considered Hatchet for parallel lender evaluation but... 5 lenders × ~15 policies runs in under 100ms. Overkill.
 
-### Backend Structure
+---
+
+## How it's organized
+
 ```
 backend/
-├── models/ # SQLAlchemy ORM (single source of truth)
-├── schemas/ # Pydantic validation (API contracts)
-├── routers/ # FastAPI endpoints (thin layer)
-├── services/ # Business logic (matching, rules, parsing)
-└── utils/ # ID generation, helpers
+├── models/      # SQLAlchemy - the truth
+├── schemas/     # Pydantic - API contracts
+├── routers/     # FastAPI - thin, just routes
+├── services/    # where the actual logic lives
+└── utils/       # random helpers, ID gen
 ```
 
-### Rule Engine Design
-- **Extensible**: New rules can be added just by decorating the functions with `@register_rule("name")`
-- **Decoupled**: Rules are independent of each other; the matching engine runs all rules
-- **Transparent**: A rule returns (passed, criteria_name, value, required) that can be displayed in the UI
+### Rules engine
+- Add new rules with `@register_rule("name")`
+- Rules don't know about each other
+- Each rule returns `(passed, criteria_name, value, required)` - makes it easy to show what failed and why
 
-### PDF Parser Design
-- **Class-based**: `PDFParser` is a class that has methods for extracting specific fields
-- **Fallback patterns**: There are multiple regex patterns for each field to be more robust
-- **Multi-tier aware**: Separate extraction for Tier 1/2/3 and A/B/C rate
+### PDF parser
+- Class-based, methods for each field type
+- Multiple regex patterns per field (fallbacks)
+- Handles multi-tier docs (Tier 1/2/3, A/B/C rate)
 
-## What I Would Add With More Time
+---
 
-### 1. Hatchet Workflow Integration
-- Lender evaluation parallel with retry logic
-- Status polling async for large batch processing
-- Credit bureau call rate limiting
+## If I had more time
 
-### 2. Enhanced Matching Logic
-- Scoring that is weighted (FICO failures are more impactful than term mismatches)
-- Close-miss detection (e.g., "FICO 695, needs 700 - consider with conditions")
-- Program suggestion ("You are eligible for B Rate, A Rate requires 30 more FICO points")
+### Async with Hatchet
+- Parallel lender evaluation with retries
+- Polling for batch jobs
+- Rate limit credit bureau calls
 
-### 3. PDF Parsing Improvements
-- Table extraction with LLM-assisted methods
-- Confidence score for each extracted field
-- Low confidence extractions go to a human review queue
+### Smarter matching
+- Weighted scores (FICO failure > term mismatch)
+- "Close miss" detection ("FICO 695, needs 700 - maybe with conditions?")
+- Upgrade suggestions ("You qualify for B Rate, need 30 more points for A")
 
-### 4. Additional UI Features
-- Lender comparison side by side
-- PDF/Excel export - History and version tracking of applications
-- Bulk application upload (CSV)
+### Better PDF parsing
+- LLM for table extraction
+- Confidence scores per field
+- Route low-confidence stuff to human review
 
-### 5. Testing
-- Unit tests for all rules
-- Integration tests for PDF parser
-- E2E tests using Playwright
-- Load testing for underwriting endpoint
+### UI stuff
+- Side-by-side lender comparison
+- PDF/Excel export
+- Application history
+- Bulk CSV upload
 
-### 6. Production Readiness
-- Correlation IDs in structured logging
-- Monitoring through Prometheus metrics
-- Rate limiting on public endpoints
-- Alembic database migrations
-- Docker Compose for local development
-- GitHub Actions CI/CD pipeline
+### Testing (yeah I know)
+- Unit tests for rules
+- Integration tests for parser
+- Playwright E2E
+- Load testing the underwriting endpoint
+
+### Prod-ready things
+- Structured logging with correlation IDs
+- Prometheus metrics
+- Rate limiting
+- Alembic migrations
+- Docker Compose
+- CI/CD with GitHub Actions
